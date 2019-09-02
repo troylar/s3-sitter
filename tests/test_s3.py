@@ -80,7 +80,7 @@ class Tests:
     def test_missing_bucket_sends_event(self, send_event_mock):
         sitter = s3_sitter(Buckets=['bucket1', 'bucket2'])
         sitter.check_all_buckets()
-        send_event_mock.assert_called_with([{'DetailType': 'InaccessibleS3Bucket', 'Resources': ['bucket1', 'bucket2'], 'Source': 's3_sitter'}])
+        send_event_mock.assert_called_with([{'DetailType': 'InaccessibleS3Bucket', 'Resources': ['bucket1', 'bucket2'], 'Source': 'aws.s3'}])
 
     @mock_s3
     @mock_events
