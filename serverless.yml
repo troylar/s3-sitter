@@ -1,38 +1,23 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
-
 service: s3-sitter
 app: S3Sitter
-#tenant: your-tenant-name
-
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
-# frameworkVersion: "=X.X.X"
 
 provider:
   name: aws
   runtime: python3.7
+  environment:
+    CheckFreqInMins: 10
+    FunctionName: S3Nanny
 
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
-
-# you can add statements to the Lambda function's IAM Role here
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:ListBucket"
       Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+    - Effect: "Allow"
+      Action:
+        - "events:PutEvents"
+        - "cloudwatch:PutMetricData"
+      Resource: "*"
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
@@ -42,55 +27,28 @@ provider:
           - - "arn:aws:s3:::"
             - "Ref" : "ServerlessDeploymentBucket"
             - "/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource: ${file(./${env:FunctionName}_resources.yml)}
 
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
-
-# you can add packaging information here
 package:
+  individually: true
+  exclude:
+    - ./**
   include:
     - s3_sitter/__init__.py
     - s3_sitter_lambda.py
 
 functions:
-  handler:
+  s3_sitter_handler:
     handler: s3_sitter_lambda.handler
-#      - cloudwatchEvent:
-#          event:
-#            source:
-#              - "aws.ec2"
-#            detail-type:
-#              - "EC2 Instance State-change Notification"
-#            detail:
-#              state:
-#                - pending
-#      - cloudwatchLog: '/aws/lambda/hello'
-#      - cognitoUserPool:
-#          pool: MyUserPool
-#          trigger: PreSignUp
-#      - alb:
-#          listenerArn: arn:aws:elasticloadbalancing:us-east-1:XXXXXX:listener/app/my-load-balancer/50dc6c495c0c9188/
-#          priority: 1
-#          conditions:
-#            host: example.com
-#            path: /hello
+    name: ${env:FunctionName}
+    events:
+      - schedule:
+          rate: rate(${env:CheckFreqInMins} minutes)
+          enabled: true
 
-#    Define function environment variables here
-#    environment:
-#      variable2: value2
-
-# you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
 plugins:
   - serverless-python-requirements
 
